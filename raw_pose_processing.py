@@ -1,10 +1,11 @@
-import sys, os
-import torch
-import numpy as np
+import os
+import sys
+
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
 from tqdm import tqdm
-
 
 from human_body_prior.tools.omni_tools import copy2cpu as c2c
 
@@ -21,29 +22,29 @@ male_dmpl_path = './body_models/dmpls/male/model.npz'
 female_bm_path = './body_models/smplh/female/model.npz'
 female_dmpl_path = './body_models/dmpls/female/model.npz'
 
-num_betas = 10 # number of body parameters
-num_dmpls = 8 # number of DMPL parameters
+num_betas = 10  # number of body parameters
+num_dmpls = 8  # number of DMPL parameters
 
-male_bm = BodyModel(bm_fname=male_bm_path, num_betas=num_betas, num_dmpls=num_dmpls, dmpl_fname=male_dmpl_path).to(comp_device)
+male_bm = BodyModel(bm_fname=male_bm_path, num_betas=num_betas, num_dmpls=num_dmpls, dmpl_fname=male_dmpl_path).to(
+    comp_device)
 faces = c2c(male_bm.f)
 
-female_bm = BodyModel(bm_fname=female_bm_path, num_betas=num_betas, num_dmpls=num_dmpls, dmpl_fname=female_dmpl_path).to(comp_device)
-
+female_bm = BodyModel(bm_fname=female_bm_path, num_betas=num_betas, num_dmpls=num_dmpls,
+                      dmpl_fname=female_dmpl_path).to(comp_device)
 
 paths = []
 folders = []
 dataset_names = []
 for root, dirs, files in os.walk('./amass_data'):
-#     print(root, dirs, files)
-#     for folder in dirs:
-#         folders.append(os.path.join(root, folder))
+    #     print(root, dirs, files)
+    #     for folder in dirs:
+    #         folders.append(os.path.join(root, folder))
     folders.append(root)
     for name in files:
         dataset_name = root.split('/')[2]
         if dataset_name not in dataset_names:
             dataset_names.append(dataset_name)
         paths.append(os.path.join(root, name))
-
 
 save_root = './pose_data'
 save_folders = [folder.replace('./amass_data', './pose_data') for folder in folders]
@@ -97,6 +98,7 @@ def amass_to_pose(src_path, save_path):
     np.save(save_path, pose_seq_np_n)
     return fps
 
+
 group_path = group_path
 all_count = sum([len(paths) for paths in group_path])
 cur_count = 0
@@ -111,7 +113,10 @@ for paths in group_path:
     for path in pbar:
         save_path = path.replace('./amass_data', './pose_data')
         save_path = save_path[:-3] + 'npy'
-        fps = amass_to_pose(path, save_path)
+        if not Path(save_path).exists():
+            fps = amass_to_pose(path, save_path)
+        else:
+            print("Already processed, skipping...")
 
     cur_count += len(paths)
     print('Processed / All (fps %d): %d/%d' % (fps, cur_count, all_count))
@@ -122,6 +127,7 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 from os.path import join as pjoin
+
 
 def swap_left_right(data):
     assert len(data.shape) == 3 and data.shape[-1] == 3
@@ -140,6 +146,7 @@ def swap_left_right(data):
         data[:, left_hand_chain] = tmp
     return data
 
+
 index_path = './index.csv'
 save_dir = './joints'
 index_file = pd.read_csv(index_path)
@@ -149,25 +156,26 @@ fps = 20
 for i in tqdm(range(total_amount)):
     source_path = index_file.loc[i]['source_path']
     new_name = index_file.loc[i]['new_name']
-    data = np.load(source_path)
-    start_frame = index_file.loc[i]['start_frame']
-    end_frame = index_file.loc[i]['end_frame']
-    if 'humanact12' not in source_path:
-        if 'Eyes_Japan_Dataset' in source_path:
-            data = data[3 * fps:]
-        if 'MPI_HDM05' in source_path:
-            data = data[3 * fps:]
-        if 'TotalCapture' in source_path:
-            data = data[1 * fps:]
-        if 'MPI_Limits' in source_path:
-            data = data[1 * fps:]
-        if 'Transitions_mocap' in source_path:
-            data = data[int(0.5 * fps):]
-        data = data[start_frame:end_frame]
-        data[..., 0] *= -1
+    if not Path(pjoin(save_dir, new_name)).exists():
+        data = np.load(source_path)
+        start_frame = index_file.loc[i]['start_frame']
+        end_frame = index_file.loc[i]['end_frame']
+        if 'humanact12' not in source_path:
+            if 'Eyes_Japan_Dataset' in source_path:
+                data = data[3 * fps:]
+            if 'MPI_HDM05' in source_path:
+                data = data[3 * fps:]
+            if 'TotalCapture' in source_path:
+                data = data[1 * fps:]
+            if 'MPI_Limits' in source_path:
+                data = data[1 * fps:]
+            if 'Transitions_mocap' in source_path:
+                data = data[int(0.5 * fps):]
+            data = data[start_frame:end_frame]
+            data[..., 0] *= -1
 
-    data_m = swap_left_right(data)
-    #     save_path = pjoin(save_dir, )
-    np.save(pjoin(save_dir, new_name), data)
-    np.save(pjoin(save_dir, 'M' + new_name), data_m)
+        data_m = swap_left_right(data)
+        #     save_path = pjoin(save_dir, )
 
+        np.save(pjoin(save_dir, new_name), data)
+        np.save(pjoin(save_dir, 'M' + new_name), data_m)
