@@ -1,5 +1,6 @@
 import os
 import sys
+from pathlib import Path
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -12,7 +13,7 @@ from human_body_prior.tools.omni_tools import copy2cpu as c2c
 os.environ['PYOPENGL_PLATFORM'] = 'egl'
 
 # Choose the device to run the body model on.
-comp_device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+comp_device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
 from human_body_prior.body_model.body_model import BodyModel
 
