@@ -150,6 +150,9 @@ def swap_left_right(data):
 
 index_path = './index.csv'
 save_dir = './joints'
+
+os.makedirs(save_dir, exist_ok=True)
+
 index_file = pd.read_csv(index_path)
 total_amount = index_file.shape[0]
 fps = 20
